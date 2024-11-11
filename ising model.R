@@ -45,7 +45,7 @@ isingnet <- bootnet::estimateNetwork( violence_data_clean,
                                       default = "IsingFit",
                                       tuning = 0.25
                                      )
-
+print(isingnet)
 
 #############################################################################################################################################################
 isingnet_matrix <- isingnet$graph
@@ -201,36 +201,104 @@ print(gs_total)
 thresholdVector <- isingnet$intercepts  # 提取截距作为阈值
 
 #对此模型进行模拟干预
-gs_IsingSamples <- simulateResponses(adj_matrix,
+gs_IsingSamples_aggravating  <- simulateResponses(adj_matrix,
                                      thresholdVector,
                                      "aggravating", 
                                      2)
-gs_sumIsingSamples <- calculateSumScores(gs_IsingSamples)
+gs_sumIsingSamples_aggravating  <- calculateSumScores(gs_IsingSamples_aggravating )
+print(gs_sumIsingSamples_aggravating)
+print(gs_sumIsingSamplesLong_aggravating)
 
 #转为长格式方便绘图
-gs_sumIsingSamplesLong <- prepareDFforPlottingAndANOVA(gs_sumIsingSamples)
+gs_sumIsingSamplesLong_aggravating <- prepareDFforPlottingAndANOVA(gs_sumIsingSamples_aggravating)
 
-plotSumScores(sum_scores_long = gs_sumIsingSamplesLong,
-              perturbation_type = "aggravating",
-              x_label_size = 12, y_label_size = 12)
-
-?plotSumScores
-
-# 生成图形并存储在变量中
-result <- plotSumScores(sum_scores_long = gs_sumIsingSamplesLong, 
+# 调用 plotSumScores 绘制增强干预的图形
+result_aggravating  <- plotSumScores(sum_scores_long = gs_sumIsingSamplesLong_aggravating ,
                         perturbation_type = "aggravating")
 
 # 获取ggplot对象
-sumScoresPlot <- result$sumScoresPlot  # 假设返回的对象中包含图形
+sumScoresPlot_aggravating  <- result_aggravating $sumScoresPlot  # 假设返回的对象中包含图形
+print(sumScoresPlot_aggravating)
 
 # 调整标签和主题
-sumScoresPlot <- sumScoresPlot + 
+sumScoresPlot_aggravating  <- sumScoresPlot_aggravating  + 
   theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),  # X轴标签
         axis.text.y = element_text(size = 12),                       # Y轴标签
         plot.title = element_text(size = 14, hjust = 0.5),          # 标题大小
         legend.text = element_text(size = 12))                       # 图例文本大小
 
 # 打印修改后的图形
-print(sumScoresPlot)
+print(sumScoresPlot_aggravating )
+
+# 模拟减弱（缓解）干预
+gs_IsingSamples_alleviating <- simulateResponses(adj_matrix,
+                                                 thresholdVector,
+                                                 "alleviating",  # 缓解
+                                                 2)
+
+# 计算减弱干预的总分
+gs_sumIsingSamples_alleviating <- calculateSumScores(gs_IsingSamples_alleviating)
+
+# 转换为长格式以便绘图
+gs_sumIsingSamplesLong_alleviating <- prepareDFforPlottingAndANOVA(gs_sumIsingSamples_alleviating)
+
+# 调用 plotSumScores 绘制减弱干预的图形
+result_alleviating <- plotSumScores(sum_scores_long = gs_sumIsingSamplesLong_alleviating,
+                        perturbation_type = "alleviating")
+print(result_alleviating)
+
+# 获取ggplot对象
+sumScoresPlot_alleviating <- result_alleviating$sumScoresPlot  
+
+# 调整标签和主题
+sumScoresPlot_alleviating <- sumScoresPlot_alleviating + 
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, size = 12),  # X轴标签
+        axis.text.y = element_text(size = 12),                       # Y轴标签
+        plot.title = element_text(size = 14, hjust = 0.5),          # 标题大小
+        legend.text = element_text(size = 12))                       # 图例文本大小
+
+# 打印修改后的图形
+print(sumScoresPlot_alleviating)
+
+# 从增强和减弱干预结果中提取数据
+print(result_aggravating)
+data_aggravating <- result_aggravating$plottedInformation
+data_alleviating <- result_alleviating$plottedInformation
+print(data_aggravating)
+
+# 添加干预类型列
+data_aggravating$perturbation_type <- "Aggravating"
+data_alleviating$perturbation_type <- "Alleviating"
+
+# 合并数据框
+combined_data <- rbind(data_aggravating, data_alleviating)
+print(combined_data)
+
+# 设置 X 轴顺序
+combined_data$thresholdIteration <- factor(combined_data$thresholdIteration, 
+                                           levels = c("original", "child_mal", "aspd_3_imp", 
+                                                      "standard2", "standard1", "hadsanx1plus",
+                                                      "q174_stress", "psychosis", "hadsdep1plus",
+                                                      "q8_unemployed", "q00901_alone", "q022_physical",
+                                                      "AUDIT_class20", "q175_relation", "gambpathgy",
+                                                      "stalk_c", "druguse", "pornaddic"))
+print(combined_data)
+
+ggplot(combined_data, aes(x = thresholdIteration, y = meanSumscore, group = perturbation_type, linetype = perturbation_type)) +
+  geom_line(aes(color = perturbation_type), size = 1) +       # 绘制线条并设置颜色
+  geom_point(aes(color = perturbation_type), size = 2) +      # 添加数据点
+  labs(x = "Symptom of which the threshold is altered", y = "Sum score", title = "Effect of Aggravating vs Alleviating Interventions") +
+  scale_color_manual(values = c("Aggravating" = "black", "Alleviating" = "black")) + # 设置颜色为黑色
+  scale_linetype_manual(values = c("Aggravating" = "solid", "Alleviating" = "dashed")) + # 设置线条类型
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 8),  # X轴标签的字体大小和角度
+    legend.title = element_text(size = 12),
+    legend.text = element_text(size = 12),
+    plot.title = element_text(size = 14, hjust = 0.5)
+  )
+
+
+
 
 
