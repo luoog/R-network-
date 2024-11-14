@@ -298,7 +298,25 @@ ggplot(combined_data, aes(x = thresholdIteration, y = meanSumscore, group = pert
     plot.title = element_text(size = 14, hjust = 0.5)
   )
 
+############################################################################################################################################################################################################################################
+str(isingnet)
+input <- list(graph = isingnet$graph, intercepts = isingnet$intercepts)
 
+Sim5 <- netSimulator(
+  input = input,
+  dataGenerator = IsingGenerator(),
+  default = "IsingFit",
+  tuning = 0.25,
+  nCases = c(250,500,1000),
+  rule = c("AND","OR"),
+  nReps = 100,
+  nCores = 7
+)
 
+str(Sim5)  # 查看 Sim5 的数据结构
+head(Sim5)  # 查看 Sim5 数据的前几行
+
+plot(Sim5)
+plot(Sim5, yfacet = "rule")
 
 
